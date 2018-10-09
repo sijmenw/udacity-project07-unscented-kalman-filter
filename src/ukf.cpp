@@ -56,10 +56,12 @@ UKF::UKF() {
   Hint: one or more values initialized above might be wildly off...
   */
 
+  is_initialized_ = false;
+
   // from 5.26
   n_x_ = 5;
   n_aug_ = 7;
-  lambda_ = 3 - n_aug_;
+  lambda_ = 3 - n_x_;
 
   weights_ = VectorXd(2 * n_aug_ + 1);
 
@@ -85,12 +87,64 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   measurements.
   */
 
+  if (!is_initialized_) {
+      // initialize
+      if (meas_package.sensor_type_ == meas_package.LASER) {
+          cout << "Initializing with laser package!\n";
+
+          // extract LASER values
+          double px = meas_package.raw_measurements_[0];
+          double py = meas_package.raw_measurements_[1];
+
+          // initialize state x
+          x_ << px, py, 2, 0, 0;
+
+          // initialize state covariance matrix P with laser values
+          P_ << std_laspx_ * std_laspx_, 0, 0, 0, 0,
+                0, std_laspy_ * std_laspy_, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, 1, 0,
+                0, 0, 0, 0, 1;
+
+      } else if (meas_package.sensor_type_ == meas_package.RADAR) {
+          cout << "Initializing with radar package!\n";
+
+          // extract RADAR values
+          double phi = meas_package.raw_measurements_[0];
+          double rho = meas_package.raw_measurements_[1];
+          double rhodot = meas_package.raw_measurements_[2];
+
+          x_ << cos(phi) * rho, sin(phi) * rho, 2, 0, 0;
+
+          // initialize state covariance matrix P with laser values
+          P_ << std_radr_ * std_radr_, 0, 0, 0, 0,
+                0, std_radr_ * std_radr_, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, std_radphi_ * std_radphi_, 0,
+                0, 0, 0, 0, 1;
+      } else {
+          cout << "WARNING: NOT INITIALIZED!\n";
+      }
+
+      time_us_ = meas_package.timestamp_;
+      is_initialized_ = true;
+
+      // don't process the package used to initialize
+      return;
+  }
+
+  // calculate delta t
+  double dt = (meas_package.timestamp_ - time_us_) / 1000000.0;
+  time_us_ = meas_package.timestamp_;
+
+  // predict step
+  Prediction(dt);
+
+  // update step
   if (meas_package.sensor_type_ == meas_package.LASER) {
-      cout << "Laser package found!\n";
+      UpdateLidar(meas_package);
   } else if (meas_package.sensor_type_ == meas_package.RADAR) {
-      cout << "Radar package found!\n";
-  } else {
-      cout << "Unknown package: " << meas_package.sensor_type_ << "\n";
+      UpdateRadar(meas_package);
   }
 
 }
