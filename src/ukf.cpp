@@ -93,6 +93,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   measurements.
   */
 
+  // skip types that are not used
+  if (meas_package.sensor_type_ == MeasurementPackage::LASER && !use_laser_) {
+      return;
+  }
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR && !use_radar_) {
+      return;
+  }
+
   if (!is_initialized_) {
       // initialize
       if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
