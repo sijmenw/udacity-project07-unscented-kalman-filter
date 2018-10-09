@@ -111,7 +111,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
                 0, 0, 1, 0, 0,
                 0, 0, 0, 1, 0,
                 0, 0, 0, 0, 1;
-          cout << "end laser init\n";
 
       } else {
           cout << "Initializing with radar package!\n";
@@ -119,7 +118,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
           // extract RADAR values
           double phi = meas_package.raw_measurements_[0];
           double rho = meas_package.raw_measurements_[1];
-//          double rhodot = meas_package.raw_measurements_[2];
 
           x_ << cos(phi) * rho, sin(phi) * rho, 2, 0, 0;
 
@@ -129,7 +127,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
                 0, 0, 1, 0, 0,
                 0, 0, 0, std_radphi_ * std_radphi_, 0,
                 0, 0, 0, 0, 1;
-          cout << "end radar init\n";
       }
 
       time_us_ = meas_package.timestamp_;
@@ -145,16 +142,12 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   time_us_ = meas_package.timestamp_;
 
   // predict step
-  cout << "Calling prediction step...\n";
   Prediction(dt);
 
   // update step
-  cout << "Calling update step: ";
   if (meas_package.sensor_type_ == meas_package.LASER) {
-      cout << "LASER\n";
       UpdateLidar(meas_package);
   } else if (meas_package.sensor_type_ == meas_package.RADAR) {
-      cout << "RADAR\n";
       UpdateRadar(meas_package);
   }
 
